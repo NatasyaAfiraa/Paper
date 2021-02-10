@@ -1,0 +1,107 @@
+---
+title: "Analisis Cluster"
+author: "Natasya Afira"
+date: "2/10/2021"
+output: html_document
+---
+
+# Load Library
+
+```{r message=FALSE, warning=FALSE}
+library(knitr)
+library(REdaS)
+library(factoextra) 
+library(clValid)
+library(tidyverse)
+library(cluster)
+```
+
+# Baca Data
+
+```{r}
+data <- read.csv("D:/dataset.csv", header=T)
+rownames(data) <- data[,1]
+data <- data[,-1]
+kable(head(data))
+summary(data)
+```
+
+# Normalisasi
+
+```{r}
+str(data)
+data <- scale(data)
+```
+*ket : Perlu dilakukan normalisasi dikarenakan satuan tiap variabel berbeda-beda *
+
+# Pengecekan asumsi
+
+```{r}
+bart_spher(data)
+KMOS(data)
+```
+
+# PCA
+
+```{r}
+PCA <- prcomp(data)
+summary(PCA)
+
+eigen_value <- get_eigenvalue(PCA)
+eigen_value
+
+fviz_eig(PCA) #visualisasi
+PCA$rotation #loading factor
+PCA_scores<-PCA$x[,1:3]
+```
+
+# Validasi Cluster
+
+```{r}
+intern <- clValid(PCA_scores, 2:6, clMethods = c("hierarchical","kmeans"), validation = "internal")
+summary(intern)
+
+
+stab <- clValid(PCA_scores, 2:6, clMethods = c("hierarchical","kmeans"), validation = "stability")
+summary(stab)
+optimalScores(stab)
+```
+*Ket : dapat menambah uji validitas lainnya jika diinginkan*
+
+# Agglomerative Coefficient 
+
+```{r}
+m <- c("single","complete","ward", "average")
+names(m) <- c("single","complete","ward", "average") 
+ac <- function(x){
+  agnes(PCA_scores,method=x)$ac
+}
+map_dbl(m,ac)
+```
+
+*Ket : untuk melihat metode hierarki yang terbaik*
+
+
+# Dendogram 
+
+```{r}
+data.hcc <- PCA_scores %>%      
+  dist(method = "euclidean") %>% 
+  hclust(method = "ward.D2")
+
+fviz_dend(data.hcc, k = 2, 
+          cex = 0.6, palette = "jco", 
+          rect = TRUE, rect_border = "jco", rect_fill = TRUE,
+          main = "Cluster Dendogram (Ward's Method)")
+```
+
+# Deskripsi Statistik Klaster
+
+```{r}
+clust1 <- data[-c(2,3,4,10,11,12,16,23,25),]
+summary(clust1)
+clust2 <- data[c(2,3,4,10,11,12,16,23,25),]
+summary(clust2)
+```
+*Ket : deskripsi statistik tiap cluster*
+
